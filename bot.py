@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-cat ~/anketa_bot/bot.py
-=======
 import telebot
 import os
 from datetime import datetime
@@ -119,4 +116,3 @@ def finish_survey(chat_id):
 
 print("Бот запущен!")
 bot.polling()
->>>>>>> 289e3af (first commit)

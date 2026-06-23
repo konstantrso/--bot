@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-cat ~/anketa_bot/pdf_generator.py
-=======
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import ParagraphStyle
@@ -25,4 +22,3 @@ def generate_pdf(answers, questions, output_path, patient_name, date_str):
         story.append(Paragraph(question, q_style))
         story.append(Paragraph(answer, a_style))
     doc.build(story)
->>>>>>> 289e3af (first commit)

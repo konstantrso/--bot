@@ -1,4 +1,3 @@
-
 from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
 from reportlab.lib.styles import ParagraphStyle
@@ -8,12 +7,14 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 import os
-FONT_DIR = "/usr/share/fonts/truetype/dejavu"
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FONT_DIR = os.path.join(BASE_DIR, "fonts")
 FONT_REGULAR = os.path.join(FONT_DIR, "DejaVuSans.ttf")
 FONT_BOLD = os.path.join(FONT_DIR, "DejaVuSans-Bold.ttf")
+
 pdfmetrics.registerFont(TTFont("DejaVu", FONT_REGULAR))
-pdfmetrics.registerFont(TTFont("DejaVu-Bold", FONT_BOLD))
-BLOCKS = {
+pdfmetrics.registerFont(TTFont("DejaVu-Bold", FONT_BOLD))BLOCKS = {
     "давление_паспорт": "ПАСПОРТ ЗДОРОВЬЯ",
     "фио": "БЛОК 1. Личные данные и стратегия",
     "энергия_утро": "БЛОК 2. Сон и психоэмоциональный статус",
@@ -30,6 +31,7 @@ BLOCKS = {
     "экология": "БЛОК 13. Экология и быт",
     "хронические_диагнозы": "БЛОК 14. История болезней",
 }
+
 def clean_text(text):
     emojis = ["📋","👤","🧠","🥗","🌡️","❤️","✨","💉","🏃","👴","🦷","👩","💊","🌿","📁","🎯","📊","👋"]
     for e in emojis:
@@ -56,8 +58,7 @@ def clean_text(text):
         spaceAfter=1*mm, spaceBefore=3*mm, textColor=colors.HexColor("#666666"),
         leftIndent=4*mm)
     answer_style = ParagraphStyle("A", fontName="DejaVu", fontSize=10,
-        spaceAfter=1*mm, textColor=colors.HexColor("#1a1a2e"), leftIndent=7*mm)
-story = []
+        spaceAfter=1*mm, textColor=colors.HexColor("#1a1a2e"), leftIndent=7*mm)story = []
     story.append(Paragraph("МАСТЕР-АНКЕТА СИСТЕМНОГО АУДИТА", title_style))
     story.append(Paragraph("ДОЛГОЛЕТИЯ И ОМОЛОЖЕНИЯ", title_style))
     story.append(Paragraph("Золотой стандарт Anti-Age и Превентивной Медицины v2.0", subtitle_style))
@@ -85,3 +86,4 @@ story = []
     story.append(Spacer(1, 3*mm))
     story.append(Paragraph("Документ сформирован автоматически - Anti-Age аудит v2.0", subtitle_style))
     doc.build(story)
+EOFcd ~/anketa_bot && git add . && git commit -m "fix font paths" && git push -f origin main

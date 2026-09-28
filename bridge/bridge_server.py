@@ -3,12 +3,14 @@ import json
 import os
 import time
 import threading
+import hmac
 import urllib.request
 import urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 RELEASE = os.getenv("BRIDGE_RELEASE", "v6")
 TOKEN = os.environ["BRIDGE_TOKEN"]
+LEGACY_TOKEN = os.getenv("LEGACY_BRIDGE_TOKEN", "")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.6")
 ANTHROPIC_PROXY_URL = os.getenv("ANTHROPIC_PROXY_URL", "").rstrip("/")
@@ -246,14 +248,20 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
-    def _authorized_path(self):
-        return self.path.split("?", 1)[0] == f"/mcp/{TOKEN}"
+    def _authorized(self):
+        path = self.path.split("?", 1)[0]
+        auth = self.headers.get("Authorization", "")
+        expected = "Bearer " + TOKEN
+        if path == "/mcp" and hmac.compare_digest(auth, expected):
+            return True
+        legacy = LEGACY_TOKEN or TOKEN
+        return path == f"/mcp/{legacy}"
 
     def do_OPTIONS(self):
         self.send_response(204)
         self.send_header("Allow", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "content-type, accept, mcp-protocol-version, mcp-method, mcp-name")
+        self.send_header("Access-Control-Allow-Headers", "content-type, accept, authorization, mcp-protocol-version, mcp-method, mcp-name")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.end_headers()
 
@@ -266,7 +274,7 @@ class Handler(BaseHTTPRequestHandler):
                 "openai": bool(OPENAI_API_KEY),
                 "claude": bool(ANTHROPIC_PROXY_URL and ANTHROPIC_PROXY_TOKEN)
             })
-        if path == f"/selftest/{TOKEN}":
+        if path == "/selftest" and hmac.compare_digest(self.headers.get("Authorization", ""), "Bearer " + TOKEN):
             checks = {}
             for key, fn, expected in (
                 ("gpt", ask_gpt, "BRIDGE_SELFTEST_GPT_OK"),
@@ -279,13 +287,13 @@ class Handler(BaseHTTPRequestHandler):
                     checks[key] = {"ok": False, "error": str(e)[:500]}
             ok = all(v.get("ok") for v in checks.values())
             return self._json(200 if ok else 503, {"ok": ok, "release": RELEASE, "checks": checks})
-        if self._authorized_path():
+        if self._authorized():
             return self._json(200, {"ok": True, "mcp": True, "release": RELEASE})
         return self._json(404, {"error": "not found"})
 
     def do_POST(self):
-        if not self._authorized_path():
-            return self._json(404, {"error": "not found"})
+        if not self._authorized():
+            return self._json(401, {"error": "unauthorized"})
         try:
             length = int(self.headers.get("Content-Length", "0"))
             if length <= 0 or length > 2_000_000:
